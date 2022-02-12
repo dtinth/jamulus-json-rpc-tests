@@ -27,11 +27,12 @@ class JamulusJsonRpcClient:
                 logger.debug("Connection closed by server.")
                 self.disconnected = True
                 break
-            logger.debug("Received: %s", data.decode())
+            logger.debug("<<< %s", data.decode())
             response = json.loads(data.decode())
             self.received.append(response)
 
     def send_line(self, line):
+        logger.debug(">>> %s", line)
         self.writer.write(line.encode() + b"\n")
 
     def send_message(self, message):
@@ -46,14 +47,25 @@ class JamulusJsonRpcClient:
             "params": params,
         }
         self.send_message(message)
+        return message_id
 
     def received_error(self, code: int):
         """
         Returns True if an error was received.
         """
         for message in self.received:
-            if message["error"] is not None:
+            if "error" in message:
                 if message["error"]["code"] == code:
+                    return True
+        return False
+
+    def received_reply(self, id: str):
+        """
+        Returns True if a message with the given id was received.
+        """
+        for message in self.received:
+            if "id" in message:
+                if message["id"] == id:
                     return True
         return False
 
